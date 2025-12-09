@@ -1,18 +1,188 @@
-module "vpc" {
-  source = "./modules/vpc"
+
+# VPC + Subnets + Routing
+
+
+resource "aws_vpc" "main_vpc" {
+  cidr_block = "10.0.0.0/16"
+
+  tags = {
+    Name = "main_vpc"
+  }
+}
+
+# Public subnets (for ALB + NAT)
+resource "aws_subnet" "public_subnet_1" {
+  vpc_id            = aws_vpc.main_vpc.id
+  cidr_block        = "10.0.1.0/24"
+  availability_zone = "eu-west-2a"
+
+  tags = {
+    Name = "public-subnet-1"
+  }
+}
+
+resource "aws_subnet" "public_subnet_2" {
+  vpc_id            = aws_vpc.main_vpc.id
+  cidr_block        = "10.0.2.0/24"
+  availability_zone = "eu-west-2b"
+
+  tags = {
+    Name = "public-subnet-2"
+  }
+}
+
+resource "aws_internet_gateway" "main_gw" {
+  vpc_id = aws_vpc.main_vpc.id
+
+  tags = {
+    Name = "main-igw"
+  }
+}
+
+resource "aws_route_table" "public_rt" {
+  vpc_id = aws_vpc.main_vpc.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.main_gw.id
+  }
+
+  tags = {
+    Name = "public-route-table"
+  }
+}
+
+resource "aws_route_table_association" "public_subnet_1_assoc" {
+  subnet_id      = aws_subnet.public_subnet_1.id
+  route_table_id = aws_route_table.public_rt.id
+}
+
+resource "aws_route_table_association" "public_subnet_2_assoc" {
+  subnet_id      = aws_subnet.public_subnet_2.id
+  route_table_id = aws_route_table.public_rt.id
+}
+
+# NAT Gateway (so private subnets can reach internet/ECR)
+resource "aws_eip" "nat_eip" {
+  domain = "vpc"
+
+  tags = {
+    Name = "nat-eip"
+  }
+}
+
+resource "aws_nat_gateway" "nat" {
+  allocation_id = aws_eip.nat_eip.id
+  subnet_id     = aws_subnet.public_subnet_1.id
+
+  tags = {
+    Name = "main-nat-gateway"
+  }
+
+  depends_on = [aws_internet_gateway.main_gw]
+}
+
+# Private subnets (for ECS tasks)
+resource "aws_subnet" "private_subnet_1" {
+  vpc_id            = aws_vpc.main_vpc.id
+  cidr_block        = "10.0.11.0/24"
+  availability_zone = "eu-west-2a"
+
+  tags = {
+    Name = "private-subnet-1"
+  }
+}
+
+resource "aws_subnet" "private_subnet_2" {
+  vpc_id            = aws_vpc.main_vpc.id
+  cidr_block        = "10.0.12.0/24"
+  availability_zone = "eu-west-2b"
+
+  tags = {
+    Name = "private-subnet-2"
+  }
+}
+
+resource "aws_route_table" "private_rt" {
+  vpc_id = aws_vpc.main_vpc.id
+
+  route {
+    cidr_block     = "0.0.0.0/0"
+    nat_gateway_id = aws_nat_gateway.nat.id
+  }
+
+  tags = {
+    Name = "private-route-table"
+  }
+}
+
+resource "aws_route_table_association" "private_subnet_1_assoc" {
+  subnet_id      = aws_subnet.private_subnet_1.id
+  route_table_id = aws_route_table.private_rt.id
+}
+
+resource "aws_route_table_association" "private_subnet_2_assoc" {
+  subnet_id      = aws_subnet.private_subnet_2.id
+  route_table_id = aws_route_table.private_rt.id
 }
 
 
-module "sg" {
-  source = "./modules/sg"
+# Security Groups
 
-  vpc_id = module.vpc.vpc_id
 
+# ALB SG – internet on 80
+resource "aws_security_group" "alb_sg" {
+  name        = "alb-sg"
+  description = "Allow HTTP from the internet"
+  vpc_id      = aws_vpc.main_vpc.id
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "alb-sg"
+  }
 }
 
-########################################
+# ECS SG – only ALB → tasks on port 80
+resource "aws_security_group" "ecs_sg" {
+  name        = "ecs-sg"
+  description = "Allow traffic from ALB to ECS tasks"
+  vpc_id      = aws_vpc.main_vpc.id
+
+  ingress {
+    from_port       = 80
+    to_port         = 80
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb_sg.id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "ecs-sg"
+  }
+}
+
+
 # Load Balancer + Target Group + Listener
-########################################
+
 
 resource "aws_lb" "app_alb" {
   name               = "tm-app-alb"
@@ -60,9 +230,9 @@ resource "aws_lb_listener" "http" {
   }
 }
 
-########################################
+
 # ECS Cluster
-########################################
+
 
 resource "aws_ecs_cluster" "app_cluster" {
   name = "threat_app"
@@ -83,9 +253,9 @@ resource "aws_ecs_cluster_capacity_providers" "app_cluster_providers" {
   }
 }
 
-########################################
+
 # IAM: Task Execution Role (for ECS + ECR)
-########################################
+
 
 resource "aws_iam_role" "ecs_task_execution_role" {
   name = "ecsTaskExecutionRole"
@@ -112,16 +282,16 @@ resource "aws_iam_role_policy_attachment" "ecs_task_ecr_read" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
 }
 
-########################################
+
 # ECS Task Definition
-########################################
+
 
 resource "aws_ecs_task_definition" "service" {
   family                   = "ecs-app"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
-  cpu                      = "1024"   # 1 vCPU
-  memory                   = "3072"   # 3 GB
+  cpu                      = "1024"   
+  memory                   = "3072"   
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
 
   container_definitions = jsonencode([
@@ -141,9 +311,9 @@ resource "aws_ecs_task_definition" "service" {
   ])
 }
 
-########################################
+
 # ECS Service
-########################################
+
 
 resource "aws_ecs_service" "app_service" {
   name            = "tm-app-service"
@@ -173,4 +343,11 @@ resource "aws_ecs_service" "app_service" {
   ]
 }
 
+########################################
+# (Optional) Output ALB URL
+########################################
 
+output "alb_dns_name" {
+  value       = aws_lb.app_alb.dns_name
+  description = "Public DNS name of the ALB"
+}
