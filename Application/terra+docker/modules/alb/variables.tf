@@ -94,6 +94,11 @@ variable "default_action_type" {
   default = "forward"
 }
 
+variable "certificate_arn" {
+  type    = string
+  default = ""
+}
+
 # Tags
 variable "tags" {
   type    = map(string)

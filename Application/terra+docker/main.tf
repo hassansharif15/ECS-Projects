@@ -13,9 +13,9 @@ module "vpc" {
   tags = var.tags
 }
 
-#################################
+
 # SECURITY GROUPS MODULE
-#################################
+
 
 module "sg" {
   source = "./modules/sg"
@@ -27,9 +27,9 @@ module "sg" {
   tags = var.tags
 }
 
-#################################
+
 # IAM MODULE
-#################################
+
 
 module "iam" {
   source = "./modules/iam"
@@ -38,9 +38,9 @@ module "iam" {
   tags                = var.tags
 }
 
-#################################
+
 # ALB MODULE
-#################################
+
 
 module "alb" {
   source = "./modules/alb"
@@ -52,13 +52,15 @@ module "alb" {
   alb_name           = var.alb_name
   tg_name            = var.tg_name
   health_check_path  = var.health_check_path
-
+  
+  certificate_arn   = module.acm.certificate_arn
+  
   tags = var.tags
 }
 
-#################################
+
 # ECS MODULE
-#################################
+
 
 module "ecs" {
   source = "./modules/ecs"
@@ -80,3 +82,27 @@ module "ecs" {
 
   tags = var.tags
 }
+
+
+# ACM Certificate (DNS validation)
+
+
+module "acm" {
+  source = "./modules/acm"
+
+  domain_name       = var.domain_name
+  hosted_zone_id    = var.hosted_zone_id
+  subject_alternative_names = []
+  tags              = var.tags
+}
+
+module "dns" {
+  source = "./modules/dns"
+
+  hosted_zone_id         = var.hosted_zone_id
+  record_name            = var.domain_name
+  alias_name             = module.alb.alb_dns_name
+  alias_zone_id          = module.alb.alb_zone_id
+  evaluate_target_health = false
+}
+

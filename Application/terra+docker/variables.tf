@@ -1,6 +1,5 @@
-#################################
 # Global
-#################################
+
 
 variable "region" {
   type    = string
@@ -15,9 +14,8 @@ variable "tags" {
   }
 }
 
-#################################
 # VPC Variables
-#################################
+
 
 variable "vpc_name" {
   type    = string
@@ -49,9 +47,9 @@ variable "private_subnet_azs" {
   default = ["eu-west-2a", "eu-west-2b"]
 }
 
-#################################
+
 # Security Groups
-#################################
+
 
 variable "alb_sg_name" {
   type    = string
@@ -63,18 +61,18 @@ variable "ecs_sg_name" {
   default = "ecs-sg"
 }
 
-#################################
+
 # IAM
-#################################
+
 
 variable "execution_role_name" {
   type    = string
   default = "ecsTaskExecutionRole"
 }
 
-#################################
+
 # ALB
-#################################
+
 
 variable "alb_name" {
   type    = string
@@ -91,9 +89,9 @@ variable "health_check_path" {
   default = "/health"
 }
 
-#################################
+
 # ECS
-#################################
+
 
 variable "cluster_name" {
   type    = string
@@ -128,4 +126,19 @@ variable "ecs_memory" {
 variable "desired_count" {
   type    = number
   default = 1
+}
+
+
+# DNS / Certificates
+
+
+variable "domain_name" {
+  type = string
+  
+}
+
+
+variable "hosted_zone_id" {
+  type = string
+ 
 }
