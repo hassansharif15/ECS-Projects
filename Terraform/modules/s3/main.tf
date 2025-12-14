@@ -1,6 +1,6 @@
-########################################
+
 # S3 Bucket (Terraform Remote State)
-########################################
+
 
 resource "aws_s3_bucket" "this" {
   bucket = var.bucket_name
@@ -10,9 +10,9 @@ resource "aws_s3_bucket" "this" {
   })
 }
 
-########################################
+
 # Block Public Access
-########################################
+
 
 resource "aws_s3_bucket_public_access_block" "this" {
   bucket = aws_s3_bucket.this.id
@@ -23,9 +23,9 @@ resource "aws_s3_bucket_public_access_block" "this" {
   restrict_public_buckets = true
 }
 
-########################################
-# Versioning (recommended for state)
-########################################
+
+# Versioning 
+
 
 resource "aws_s3_bucket_versioning" "this" {
   bucket = aws_s3_bucket.this.id
@@ -35,9 +35,9 @@ resource "aws_s3_bucket_versioning" "this" {
   }
 }
 
-########################################
+
 # Server-side encryption
-########################################
+
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "this" {
   bucket = aws_s3_bucket.this.id
@@ -49,9 +49,9 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "this" {
   }
 }
 
-########################################
+
 # Optional lifecycle (keep state tidy)
-########################################
+
 
 resource "aws_s3_bucket_lifecycle_configuration" "this" {
   count  = var.enable_lifecycle_rules ? 1 : 0
@@ -72,3 +72,4 @@ resource "aws_s3_bucket_lifecycle_configuration" "this" {
 
   depends_on = [aws_s3_bucket_versioning.this]
 }
+
