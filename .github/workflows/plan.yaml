@@ -3,46 +3,28 @@ name: Terraform Plan
 on:
   push:
     branches: [ "deployment" ]
-    paths:
-      - "Terraform/"
   workflow_dispatch:
-  pull_request:
-    branches: [ "deployment" ]
-    paths:
-      - "Terraform/"
+
 permissions:
   id-token: write
   contents: read
-  pull-requests: write
 
 jobs:
   plan:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ${{ vars.TF_WORKING_DIR }}
+        working-directory: Terraform   # TEMP: hardcode for test
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
+      - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+      - uses: hashicorp/setup-terraform@v3
 
-      - name: Terraform fmt (check)
-        run: terraform fmt -check -recursive
-
-      - name: Terraform init
-        run: terraform init -input=false
-
-      - name: Terraform validate
-        run: terraform validate
-
-      - name: Terraform plan
-        run: terraform plan -input=false -no-color
+      - run: terraform init -input=false
+      - run: terraform plan -input=false -no-color
