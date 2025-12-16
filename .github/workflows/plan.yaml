@@ -1,12 +1,15 @@
 name: Terraform Plan
 
 on:
-  pull_request:
+  push:
     branches: [ "deployment" ]
     paths:
       - "Terraform/"
   workflow_dispatch:
-
+  pull_request:
+    branches: [ "deployment" ]
+    paths:
+      - "Terraform/"
 permissions:
   id-token: write
   contents: read
