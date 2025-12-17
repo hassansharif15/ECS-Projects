@@ -1,8 +1,8 @@
 module "vpc" {
   source = "./modules/vpc"
 
-  vpc_name            = var.vpc_name
-  vpc_cidr_block      = var.vpc_cidr_block
+  vpc_name       = var.vpc_name
+  vpc_cidr_block = var.vpc_cidr_block
 
   public_subnet_cidrs = var.public_subnet_cidrs
   public_subnet_azs   = var.public_subnet_azs
@@ -49,12 +49,12 @@ module "alb" {
   public_subnet_ids = module.vpc.public_subnet_ids
   alb_sg_id         = module.sg.alb_sg_id
 
-  alb_name           = var.alb_name
-  tg_name            = var.tg_name
-  health_check_path  = var.health_check_path
-  
-  certificate_arn   = module.acm.certificate_arn
-  
+  alb_name          = var.alb_name
+  tg_name           = var.tg_name
+  health_check_path = var.health_check_path
+
+  certificate_arn = module.acm.certificate_arn
+
   tags = var.tags
 }
 
@@ -90,10 +90,10 @@ module "ecs" {
 module "acm" {
   source = "./modules/acm"
 
-  domain_name       = var.domain_name
-  hosted_zone_id    = var.hosted_zone_id
+  domain_name               = var.domain_name
+  hosted_zone_id            = var.hosted_zone_id
   subject_alternative_names = []
-  tags              = var.tags
+  tags                      = var.tags
 }
 
 module "dns" {
