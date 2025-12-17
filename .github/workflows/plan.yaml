@@ -3,6 +3,8 @@ name: Terraform Plan
 on:
   push:
     branches: [ "deployment" ]
+    paths:
+      - "Terraform/**"
   workflow_dispatch:
 
 permissions:
@@ -14,17 +16,37 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: Terraform   # TEMP: hardcode for test
+        working-directory: Terraform
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: aws-actions/configure-aws-credentials@v4
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
 
-      - uses: hashicorp/setup-terraform@v3
+      - name: Verify AWS identity
+        run: aws sts get-caller-identity
 
-      - run: terraform init -input=false
-      - run: terraform plan -input=false -no-color
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform fmt (check)
+        run: terraform fmt -check -recursive
+
+      - name: Terraform init
+        run: terraform init -input=false
+
+      - name: Terraform validate
+        run: terraform validate
+
+      - name: Set Terraform input variables
+        run: |
+          echo "TF_VAR_domain_name=${{ vars.DOMAIN_NAME }}" >> $GITHUB_ENV
+          echo "TF_VAR_hosted_zone_id=${{ secrets.HOSTED_ZONE_ID }}" >> $GITHUB_ENV
+
+      - name: Terraform plan
+        run: terraform plan -input=false -no-color
