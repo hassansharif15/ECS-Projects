@@ -37,5 +37,11 @@ jobs:
 
       - name: Set Terraform input variables
         run: |
-          echo "TF_VAR_domain_name=${{ vars.DOMAIN_
+          echo "TF_VAR_domain_name=${{ vars.DOMAIN_NAME }}" >> $GITHUB_ENV
+          echo "TF_VAR_hosted_zone_id=${{ secrets.HOSTED_ZONE_ID }}" >> $GITHUB_ENV
 
+      - name: Terraform init
+        run: terraform init -input=false
+
+      - name: Terraform apply
+        run: terraform apply -input=false -auto-approve
