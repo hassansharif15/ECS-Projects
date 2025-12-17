@@ -5,6 +5,7 @@ on:
     branches: [ "deployment" ]
     paths:
       - "Terraform/**"
+      - ".github/workflows/plan.yaml"
   workflow_dispatch:
 
 permissions:
