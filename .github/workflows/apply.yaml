@@ -1,9 +1,13 @@
 name: Terraform Apply (manual)
 
-on:
+on: 
+  push:
+    branches: [ "deployment" ]
+    paths:
+      - "Terraform/**"
+      - ".github/workflows/plan.yaml"
   workflow_dispatch:
-
-permissions:
+permissions:        
   id-token: write
   contents: read
 
