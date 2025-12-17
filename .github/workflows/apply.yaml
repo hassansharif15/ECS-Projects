@@ -1,22 +1,22 @@
-name: Terraform Apply 
+name: Terraform Apply
 
-on: 
-  
+on:
   workflow_dispatch:
-permissions:        
+
+permissions:
   id-token: write
   contents: read
 
-env:
-aws-region: ${{ env.AWS_REGION }}
-
+concurrency:
+  group: terraform-apply
+  cancel-in-progress: false
 
 jobs:
   apply:
     runs-on: ubuntu-latest
     defaults:
-      
-        
+      run:
+        working-directory: Terraform
 
     steps:
       - name: Checkout
@@ -26,12 +26,16 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
+          aws-region: ${{ vars.AWS_REGION }}
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
-      
+      - name: Set Terraform input variables
+        run: |
+          echo "TF_VAR_domain_name=${{ vars.DOMAIN_NAME }}" >> $GITHUB_ENV
+          echo "TF_VAR_hosted_zone_id=${{ secrets.HOSTED_ZONE_ID }}" >> $GITHUB_ENV
+
       - name: Terraform init
         run: terraform init -input=false
 
