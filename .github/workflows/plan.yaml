@@ -35,6 +35,15 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
+      - name: Restore terraform.tfvars from secret
+        run: |
+          echo "${{ secrets.TFVARS_B64 }}" | base64 -d > terraform.tfvars
+
+      - name: Verify tfvars present (safe)
+        run: |
+          test -f terraform.tfvars
+          echo "tfvars restored ✅"
+
       - name: Terraform fmt (check)
         run: terraform fmt -check -recursive
 
@@ -43,17 +52,6 @@ jobs:
 
       - name: Terraform validate
         run: terraform validate
-
-      - name: Set Terraform input variables
-        run: |
-          echo "TF_VAR_domain_name=${{ vars.DOMAIN_NAME }}" >> $GITHUB_ENV
-          echo "TF_VAR_hosted_zone_id=${{ secrets.HOSTED_ZONE_ID }}" >> $GITHUB_ENV
-      
-      - name: Debug TF vars present (safe)
-        run: |
-          if [ -z "${TF_VAR_domain_name}" ]; then echo "TF_VAR_domain_name is MISSING"; exit 1; fi
-          if [ -z "${TF_VAR_hosted_zone_id}" ]; then echo "TF_VAR_hosted_zone_id is MISSING"; exit 1; fi
-          echo "TF vars are set"
 
       - name: Terraform plan
         run: terraform plan -input=false -no-color

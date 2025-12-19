@@ -1,10 +1,11 @@
-name: Terraform Apply (auto)
+name: Terraform Apply
 
 on:
   workflow_run:
-    workflows: ["Terraform Plan"]
+    workflows: ["Terraform Plan"]   # must match plan.yaml's `name:`
     types: [completed]
     branches: ["deployment"]
+  workflow_dispatch:
 
 permissions:
   id-token: write
@@ -16,7 +17,10 @@ concurrency:
 
 jobs:
   apply:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    # Run if plan workflow succeeded, OR if manually dispatched
+    if: >
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
+      (github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -35,13 +39,24 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
-      - name: Set Terraform input variables
+      - name: Restore terraform.tfvars from secret
         run: |
-          echo "TF_VAR_domain_name=${{ vars.DOMAIN_NAME }}" >> $GITHUB_ENV
-          echo "TF_VAR_hosted_zone_id=${{ secrets.HOSTED_ZONE_ID }}" >> $GITHUB_ENV
+          if [ -z "${{ secrets.TFVARS_B64 }}" ]; then
+            echo "Missing secret TFVARS_B64"
+            exit 1
+          fi
+          echo "${{ secrets.TFVARS_B64 }}" | base64 -d > terraform.tfvars
+          test -f terraform.tfvars && echo "tfvars restored ✅"
 
       - name: Terraform init
         run: terraform init -input=false
 
+      - name: Terraform validate
+        run: terraform validate
+
+      # Apply does its own plan file (plan output isn't shared across workflows)
+      - name: Terraform plan (for apply)
+        run: terraform plan -input=false -no-color -out=tfplan
+
       - name: Terraform apply
-        run: terraform apply -input=false -auto-approve
+        run: terraform apply -input=false -auto-approve tfplan
