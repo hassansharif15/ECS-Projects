@@ -1,11 +1,6 @@
 name: Terraform Destroy
 
 on:
-  push:
-    branches: [ "deployment" ]
-    paths:
-      - "Terraform/**"
-      - ".github/workflows/destroy.yaml"
   workflow_dispatch:
     inputs:
       confirm:
@@ -13,6 +8,11 @@ on:
         required: true
         default: 'NO'
 
+  # OPTIONAL: auto-trigger after successful Apply
+  workflow_run:
+    workflows: ["Terraform Apply"]   # must match apply.yaml `name:`
+    types: [completed]
+    branches: ["deployment"]
 
 permissions:
   id-token: write
@@ -24,19 +24,17 @@ concurrency:
 
 jobs:
   destroy:
+    # Manual requires typing DESTROY.
+    # Auto-destroy requires repo variable AUTO_DESTROY == 'true' and Apply succeeded.
+    if: >
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.confirm == 'DESTROY') ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && vars.AUTO_DESTROY == 'true')
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: Terraform
 
     steps:
-      - name: Block unless confirmed
-        run: |
-          if [ "${{ inputs.confirm }}" != "DESTROY" ]; then
-            echo 'Confirmation missing. Type DESTROY to proceed.'
-            exit 1
-          fi
-
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -46,16 +44,17 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
 
-      - name: Verify AWS identity
-        run: aws sts get-caller-identity
-
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
-      - name: Set Terraform input variables
+      - name: Restore terraform.tfvars from secret
         run: |
-          echo "TF_VAR_domain_name=${{ vars.DOMAIN_NAME }}" >> $GITHUB_ENV
-          echo "TF_VAR_hosted_zone_id=${{ secrets.HOSTED_ZONE_ID }}" >> $GITHUB_ENV
+          if [ -z "${{ secrets.TFVARS_B64 }}" ]; then
+            echo "Missing secret TFVARS_B64"
+            exit 1
+          fi
+          echo "${{ secrets.TFVARS_B64 }}" | base64 -d > terraform.tfvars
+          test -f terraform.tfvars && echo "tfvars restored ✅"
 
       - name: Terraform init
         run: terraform init -input=false
