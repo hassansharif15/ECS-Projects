@@ -2,7 +2,7 @@ name: Terraform Plan
 
 on:
   push:
-    branches: [ "deployment" ]
+    branches: ["deployment"]
     paths:
       - "Terraform/**"
       - ".github/workflows/plan.yaml"
@@ -23,6 +23,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      # ✅ Check formatting ONLY on files tracked in git (won't include secret-created tfvars)
+      - name: Terraform fmt (check tracked files only)
+        run: |
+          files=$(git ls-files '*.tf' '*.tfvars' '*.tf.json' '*.tfvars.json')
+          if [ -n "$files" ]; then
+            terraform fmt -check $files
+          fi
+
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -32,20 +43,12 @@ jobs:
       - name: Verify AWS identity
         run: aws sts get-caller-identity
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-
       - name: Restore terraform.tfvars from secret
         run: |
           echo "${{ secrets.TFVARS_B64 }}" | base64 -d > terraform.tfvars
-
-      - name: Verify tfvars present (safe)
-        run: |
-          test -f terraform.tfvars
-          echo "tfvars restored ✅"
-
-      - name: Terraform fmt (check)
-        run: terraform fmt -check -recursive
+          # normalize CRLF -> LF just in case
+          sed -i 's/\r$//' terraform.tfvars
+          test -f terraform.tfvars && echo "tfvars restored ✅"
 
       - name: Terraform init
         run: terraform init -input=false
