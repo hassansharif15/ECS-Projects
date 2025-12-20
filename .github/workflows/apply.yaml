@@ -2,9 +2,8 @@ name: Terraform Apply
 
 on:
   workflow_run:
-    workflows: ["Terraform Plan"]   # must match plan.yaml's `name:`
+    workflows: ["Terraform Plan"]   # must EXACTLY match plan.yaml 'name:'
     types: [completed]
-    branches: ["deployment"]
   workflow_dispatch:
 
 permissions:
@@ -17,18 +16,23 @@ concurrency:
 
 jobs:
   apply:
-    # Run if plan workflow succeeded, OR if manually dispatched
-    if: >
-      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
-      (github.event_name == 'workflow_dispatch')
+    # Auto-run only if Plan succeeded AND it was on the deployment branch.
+    # Also allow manual runs any time.
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'deployment') }}
     runs-on: ubuntu-latest
+
     defaults:
       run:
         working-directory: Terraform
 
+    env:
+      TFVARS_B64: ${{ secrets.TFVARS_B64 }}
+
     steps:
-      - name: Checkout
+      - name: Checkout (same commit that Plan ran on)
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
@@ -41,11 +45,12 @@ jobs:
 
       - name: Restore terraform.tfvars from secret
         run: |
-          if [ -z "${{ secrets.TFVARS_B64 }}" ]; then
+          if [ -z "$TFVARS_B64" ]; then
             echo "Missing secret TFVARS_B64"
             exit 1
           fi
-          echo "${{ secrets.TFVARS_B64 }}" | base64 -d > terraform.tfvars
+          echo "$TFVARS_B64" | base64 -d > terraform.tfvars
+          sed -i 's/\r$//' terraform.tfvars
           test -f terraform.tfvars && echo "tfvars restored ✅"
 
       - name: Terraform init
@@ -54,7 +59,6 @@ jobs:
       - name: Terraform validate
         run: terraform validate
 
-      # Apply does its own plan file (plan output isn't shared across workflows)
       - name: Terraform plan (for apply)
         run: terraform plan -input=false -no-color -out=tfplan
 
