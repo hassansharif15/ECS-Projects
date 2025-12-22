@@ -3,8 +3,8 @@
 
 resource "aws_route53_record" "alias" {
   zone_id = var.hosted_zone_id
-  name    = var.record_name 
-  type    = var.record_type 
+  name    = var.record_name
+  type    = var.record_type
 
   alias {
     name                   = var.alias_name    # ALB DNS name
