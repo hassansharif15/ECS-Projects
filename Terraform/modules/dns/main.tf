@@ -1,4 +1,3 @@
-
 # Route53 Alias Record -> ALB
 
 
