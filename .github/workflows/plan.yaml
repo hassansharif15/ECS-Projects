@@ -26,7 +26,7 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
-      # ✅ Check formatting ONLY on files tracked in git (won't include secret-created tfvars)
+      
       - name: Terraform fmt (check tracked files only)
         run: |
           files=$(git ls-files '*.tf' '*.tfvars' '*.tf.json' '*.tfvars.json')

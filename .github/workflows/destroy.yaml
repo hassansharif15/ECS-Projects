@@ -8,9 +8,9 @@ on:
         required: true
         default: 'NO'
 
-  # OPTIONAL: auto-trigger after successful Apply
+  
   workflow_run:
-    workflows: ["Terraform Apply"]   # must match apply.yaml `name:`
+    workflows: ["Terraform Apply"]   
     types: [completed]
     branches: ["deployment"]
 
@@ -24,8 +24,7 @@ concurrency:
 
 jobs:
   destroy:
-    # Manual requires typing DESTROY.
-    # Auto-destroy requires repo variable AUTO_DESTROY == 'true' and Apply succeeded.
+    
     if: >
       (github.event_name == 'workflow_dispatch' && github.event.inputs.confirm == 'DESTROY') ||
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && vars.AUTO_DESTROY == 'true')

@@ -1,6 +1,6 @@
-########################################
+
 # ACM Certificate Request
-########################################
+
 
 resource "aws_acm_certificate" "this" {
   domain_name               = var.domain_name
@@ -14,9 +14,9 @@ resource "aws_acm_certificate" "this" {
   tags = var.tags
 }
 
-########################################
+
 # Route53 DNS Validation Records
-########################################
+
 
 resource "aws_route53_record" "validation" {
   for_each = {
@@ -36,9 +36,9 @@ resource "aws_route53_record" "validation" {
   records = [each.value.record]
 }
 
-########################################
+
 # ACM Certificate Validation
-########################################
+
 
 resource "aws_acm_certificate_validation" "this" {
   certificate_arn = aws_acm_certificate.this.arn
