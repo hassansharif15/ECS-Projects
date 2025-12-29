@@ -52,3 +52,7 @@ ECS-Projects/
 ├── .gitignore
 └── README.md
 ---
+## ARCHITTECTURE
+![alt text](image.png)
+---
+
