@@ -1,28 +1,29 @@
+## ECS Fargate Deployment (Terraform + GitHub Actions OIDC)
 
-# ECS Threat Composer
+This project deploys a containerised application to AWS ECS (Fargate) using Terraform for infrastructure and GitHub Actions for CI/CD. Docker images are built and pushed to Amazon ECR, and infrastructure is managed through automated Plan / Apply / Destroy workflows.
 
-A monorepo that demonstrates packaging a web application, containerising it, and deploying it to AWS using ECS Fargate with Terraform and GitHub Actions. This repo is designed to follow a realistic production workflow: manual ClickOps exploration, then infrastructure-as-code, and finally automated CI/CD with secure AWS authentication (OIDC).
+What this project includes
 
-**What this repo contains**
-- **App**: A lightweight React app served by Nginx in `application/`.
-- **Container config**: `Dockerfile` and `.dockerignore` for multi-stage builds and minimal runtime images.
-- **Infra**: Terraform configuration and reusable modules for VPC, ECS, ALB, ECR, ACM, Route53, IAM, and security groups under `terraform/` and `modules/`.
-- **CI/CD**: GitHub Actions workflows in `.github/workflows/` that build/push images and run Terraform (init/plan/apply) using OIDC.
+✅ Docker build & push to Amazon ECR
 
-**Deliverables checklist**
-- [ ] `app/` with `/health` route returning `{"status":"ok"}`
-- [ ] `Dockerfile` (multi-stage), `.dockerignore`, non-root runtime user
-- [ ] Image pushed to ECR (tagged with commit SHA or version)
-- [ ] Terraform (IaC) 
-- [ ] `.github/workflows/deploy.yml` (build, push, terraform)
-- [ ] HTTPS via ACM + Route53 pointing to ALB
+✅ ECS Fargate service deployment
+
+✅ Application Load Balancer (ALB) routing traffic to ECS tasks
+
+✅ DNS via Route 53 (domain example: devopsbyhassan.com)
+
+✅ GitHub → AWS authentication using OIDC (no static AWS keys in GitHub)
+
+✅ Terraform remote backend support (S3 state + DynamoDB locking) 
+
+## Architecture
+
+![alt text](image.png)
 
 
-**Repository layout (high level)**
-
-```
-
-├── app/                      
+## repository structure
+```text
+├── ECS PROJECT/                      
 │   └── (React UI + Dockerfile)
 │
 ├── terraform/                
@@ -47,137 +48,114 @@ A monorepo that demonstrates packaging a web application, containerising it, and
         ├── plan.yaml
         ├── apply.yaml
         └── destroy.yaml
-```
-
-**Architecture**
-
 
 ```
-image-1.png
 
+ 
+ 
+  ## CI/CD Workflows
 
----
-**1) Application Setup**
+1) Build → Push (ECR)
 
-Requirements
-- Simple route `/health` returning `{ "status": "ok" }`.
-- Runs locally on port 80 before containerising.
+Trigger: push to deployment 
 
-Verification (local):
+Builds Docker image from Application/
 
-```sh
-# from project root
-cd application
-npm install
-npm run start
-curl http://localhost:80/health
-# expected: {"status":"ok"}
-```
+Pushes image to ECR
 
-
-
-**2) Containerisation**
-
-Requirements
-- Multi-stage `Dockerfile` (build → runtime)
-- `.dockerignore`
-- Non-root runtime user and small image
-
-Sample verification:
-
-```sh
-docker build -t threatmod:latest application/
-docker run -p 8080:80 threatmod:latest
-curl http://localhost:8080/health
-# expected: {"status":"ok"}
-```
-
-Place your `Dockerfile` and `.dockerignore` in `application/`.
-
-**3) Image Registry (ECR)**
-
-Preferred: push to ECR. Tag with commit SHA or version.
-
-Example push commands (after auth):
-
-```sh
-aws ecr create-repository --repository-name threatmod || true
-docker tag threatmod:latest <account>.dkr.ecr.<region>.amazonaws.com/threatmod:<tag>
-docker push <account>.dkr.ecr.<region>.amazonaws.com/threatmod:<tag>
-```
-
-**4) Terraform (IaC)**
-
-Recreate the ClickOps setup using Terraform. Minimum resources:
-- VPC with public subnets
-- ECS cluster + Fargate service
-- ECR repository
-- ALB + listeners + target group
-- ACM certificate
-- Route53 record for `tm.<your-domain>`
-- IAM roles and security groups
-
-Structure example:
-
-```
-terraform/
-├─ provider.tf
-├─ backend.tf            # optional S3 + DynamoDB locking
-├─ main.tf
-├─ variables.tf
-├─ outputs.tf
-└─ modules/
-	 ├─ vpc/
-	 ├─ ecs/
-	 ├─ alb/
-	 ├─ ecr/
-	 └─ acm/
-```
-
-Quick commands:
-
-```sh
-cd terraform
-terraform init
-terraform fmt
-terraform validate
-terraform plan -out plan.tfplan
-terraform apply plan.tfplan
-```
-
-Notes: Use an S3 backend and DynamoDB for locks (recommended for team use).
-
-**6) CI/CD (GitHub Actions)**
-
-Goals:
-- Build & tag image with SHA
-- Push to ECR
-- Run `terraform init`, `plan`, and `apply` on `main` (use OIDC, no static creds)
-- After deploy, run a health-check `curl https://tm.<your-domain>/health` and fail if unhealthy
-
-Place workflows under `.github/workflows/` and include a `workflow_dispatch` trigger for manual runs.
-
-Suggested checks: `terraform fmt`, `terraform validate`, `tflint` (optional), and an automated post-deploy curl.
-
-**7) HTTPS & Domain**
-
-- Use ACM for certificates .
-- Add Route53 `A`/`CNAME` record (e.g., `tm.labs.<your-domain>`) to the ALB.
-- Configure ALB listener to forward 80→443 if you want HTTP→HTTPS redirect.
-
-*
----
-
-Screenshots
-- 
-![alt text](image-1.png)
 ![alt text](<Screenshot 2025-12-29 170445.png>)
+
+2) Terraform Plan
+
+Trigger: push to deployment (Terraform changes) 
+
+Restores terraform.tfvars from GitHub Secret 
+
+Runs:
+
+terraform init
+
+terraform validate
+
+terraform plan
+
 ![alt text](<Screenshot 2025-12-29 170526.png>)
+
+
+3) Terraform Apply
+
+Trigger: automatically after Terraform Plan succeeds 
+
+Runs:
+
+terraform plan -out=tfplan
+
+terraform apply tfplan
+
 ![alt text](<Screenshot 2025-12-29 170809.png>)
+
+4) Terraform Destroy
+
+
+Trigger: manual only (recommended)
+
+Requires confirmation input (safety)
+
+Runs:
+
+terraform destroy
+
+![alt text](image-2.png)
+
+## GitHub Configuration
+
+Go to: Repo → Settings → Secrets and variables → Actions
+
+Secrets
+
+AWS_ROLE_ARN — IAM role assumed via GitHub OIDC
+
+TFVARS_B64 — base64-encoded terraform.tfvars
+
+Variables
+
+AWS_REGION — e.g. eu-west-2
+
+ECR_REPOSITORY — your ECR repo name (e.g. ecs-project-app)
+
+## Managing terraform.tfvars (Safe Method)
+
+Do not commit terraform.tfvars. Store it as base64 in GitHub Secrets.
+
+From repo root
+
+base64 -w 0 Terraform/terraform.tfvars > tfvars.b64
+cat tfvars.b64
+
+Copy the output into GitHub Secret: TFVARS_B64.
+
+Your workflows restore it at runtime.
+
+
+## Local Terraform Commands 
+
+cd Terraform
+terraform fmt -recursive
+terraform init
+terraform validate
+terraform plan
+terraform apply -auto-approve
+
+
+ Useful AWS CLI Checks
+aws ecs list-clusters --region eu-west-2
+aws ecs list-services --cluster <CLUSTER_NAME_OR_ARN> --region eu-west-2
+
+aws elbv2 describe-load-balancers --region eu-west-2
+aws elbv2 describe-target-groups --region eu-west-2
+
+aws route53 list-hosted-zones
+aws route53 list-resource-record-sets --hosted-zone-id <HOSTED_ZONE_ID>
+
 ![alt text](<Screenshot 2025-12-29 171134.png>)
----
-
-
-
-
 
