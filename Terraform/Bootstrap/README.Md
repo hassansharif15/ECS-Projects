@@ -138,3 +138,13 @@ If you use multiple environments, use:
 separate buckets per env, or
 
 separate state keys per env (dev/terraform.tfstate, prod/terraform.tfstate)
+
+## Local Terraform Commands 
+```text
+cd Terraform
+terraform fmt -recursive
+terraform init
+terraform validate
+terraform plan
+terraform apply -auto-approve
+
