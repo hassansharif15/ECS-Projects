@@ -51,17 +51,15 @@ What this project includes
 
 ```
 
- 
- 
-  ## CI/CD Workflows
+ ## CI/CD Workflows
 
 1) Build → Push (ECR)
 
-Trigger: push to deployment 
+- Trigger: push to deployment 
 
-Builds Docker image from Application/
+- Builds Docker image from Application/
 
-Pushes image to ECR
+- Pushes image to ECR
 
 ![alt text](images/build.png)
 
@@ -73,11 +71,11 @@ Restores terraform.tfvars from GitHub Secret
 
 Runs:
 
-terraform init
+- terraform init
 
-terraform validate
+- terraform validate
 
-terraform plan
+- terraform plan
 
 ![alt text](images/plan.png)
 
@@ -88,9 +86,9 @@ Trigger: automatically after Terraform Plan succeeds
 
 Runs:
 
-terraform plan -out=tfplan
+- terraform plan -out=tfplan
 
-terraform apply tfplan
+- terraform apply tfplan
 
 ![alt text](images/Apply.png)
 
@@ -103,7 +101,7 @@ Requires confirmation input (safety)
 
 Runs:
 
-terraform destroy
+- terraform destroy
 
 ![alt text](images/destroy.png)
 
@@ -125,37 +123,48 @@ ECR_REPOSITORY — your ECR repo name (e.g. ecs-project-app)
 
 ## Managing terraform.tfvars (Safe Method)
 
-Do not commit terraform.tfvars. Store it as base64 in GitHub Secrets.
+- Do not commit terraform.tfvars. Store it as base64 in GitHub Secrets.
 
 From repo root
 
-base64 -w 0 Terraform/terraform.tfvars > tfvars.b64
+- base64 -w 0 Terraform/terraform.tfvars > tfvars.b64
 cat tfvars.b64
 
-Copy the output into GitHub Secret: TFVARS_B64.
+- Copy the output into GitHub Secret: TFVARS_B64.
 
-Your workflows restore it at runtime.
+- Your workflows restore it at runtime.
 
 
 ## Local Terraform Commands 
-
+```text
 cd Terraform
 terraform fmt -recursive
 terraform init
 terraform validate
 terraform plan
 terraform apply -auto-approve
+```
+### To run Locally 
+```text
+To run the app locally 
+git clone https://github.com/hassansharif15/ECS-Projects
+cd ECS PROJECTS
+cd application
+npm install
+docker build -t threat-comp-app
+docker run -p 8080:8080 threat-comp-app
+```
 
 
- Useful AWS CLI Checks
-aws ecs list-clusters --region eu-west-2
-aws ecs list-services --cluster <CLUSTER_NAME_OR_ARN> --region eu-west-2
+ ### Useful AWS CLI Checks
+- aws ecs list-clusters --region eu-west-2
+- aws ecs list-services --cluster <CLUSTER_NAME_OR_ARN> --region eu-west-2
 
-aws elbv2 describe-load-balancers --region eu-west-2
-aws elbv2 describe-target-groups --region eu-west-2
+- aws elbv2 describe-load-balancers --region eu-west-2
+- aws elbv2 describe-target-groups --region eu-west-2
 
-aws route53 list-hosted-zones
-aws route53 list-resource-record-sets --hosted-zone-id <HOSTED_ZONE_ID>
+- aws route53 list-hosted-zones
+- aws route53 list-resource-record-sets --hosted-zone-id <HOSTED_ZONE_ID>
 
 ![alt text](images/app.png)
 
