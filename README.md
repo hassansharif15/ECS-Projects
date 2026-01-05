@@ -169,4 +169,4 @@ docker run -p 8080:8080 threat-comp-app
 ![alt text](images/app.png)
 
 
-![alt text](image.png)
+![alt text](images/CERT.png)
