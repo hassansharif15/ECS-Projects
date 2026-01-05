@@ -18,7 +18,7 @@ What this project includes
 
 ## Architecture
 
-![alt text](image.png)
+![alt text](images/arch.png)
 
 
 ## repository structure
@@ -63,7 +63,7 @@ Builds Docker image from Application/
 
 Pushes image to ECR
 
-![alt text](<Screenshot 2025-12-29 170445.png>)
+![alt text](images/build.png)
 
 2) Terraform Plan
 
@@ -79,7 +79,7 @@ terraform validate
 
 terraform plan
 
-![alt text](<Screenshot 2025-12-29 170526.png>)
+![alt text](images/plan.png)
 
 
 3) Terraform Apply
@@ -92,7 +92,7 @@ terraform plan -out=tfplan
 
 terraform apply tfplan
 
-![alt text](<Screenshot 2025-12-29 170809.png>)
+![alt text](images/Apply.png)
 
 4) Terraform Destroy
 
@@ -105,7 +105,7 @@ Runs:
 
 terraform destroy
 
-![alt text](image-2.png)
+![alt text](images/destroy.png)
 
 ## GitHub Configuration
 
@@ -157,5 +157,5 @@ aws elbv2 describe-target-groups --region eu-west-2
 aws route53 list-hosted-zones
 aws route53 list-resource-record-sets --hosted-zone-id <HOSTED_ZONE_ID>
 
-![alt text](<Screenshot 2025-12-29 171134.png>)
+![alt text](images/app.png)
 
