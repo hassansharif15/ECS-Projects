@@ -1,38 +1,67 @@
-## ECS Fargate Deployment (Terraform + GitHub Actions OIDC)
+# 🚀 ECS Fargate Deployment
+### *Terraform + GitHub Actions OIDC*
 
-This project deploys a containerised application to AWS ECS (Fargate) using Terraform for infrastructure and GitHub Actions for CI/CD. Docker images are built and pushed to Amazon ECR, and infrastructure is managed through automated Plan / Apply / Destroy workflows.
+<div align="center">
 
-What this project includes
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![Terraform](https://img.shields.io/badge/Terraform-844FBA?style=for-the-badge&logo=terraform&logoColor=white)
+![AWS](https://img.shields.io/badge/AWS-FF9900?style=for-the-badge&logo=amazon-aws&logoColor=white)
+![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-2088FF?style=for-the-badge&logo=github-actions&logoColor=white)
 
-✅ Docker build & push to Amazon ECR
+</div>
 
-✅ ECS Fargate service deployment
+---
 
-✅ Application Load Balancer (ALB) routing traffic to ECS tasks
+## 📝 Overview
 
-✅ DNS via Route 53 (domain example: devopsbyhassan.com)
+Deploys a containerised React application to **AWS ECS Fargate** with infrastructure-as-code (Terraform) and automated CI/CD pipelines (GitHub Actions). Docker images are built and pushed to Amazon ECR, with full infrastructure management through automated workflows.
 
-✅ GitHub → AWS authentication using OIDC (no static AWS keys in GitHub)
+### ✨ Key Features
 
-✅ Terraform remote backend support (S3 state + DynamoDB locking) 
+| Feature | Details |
+|---------|---------|
+| 🐳 **Container Registry** | Docker build & push to Amazon ECR |
+| ⚙️ **Compute** | ECS Fargate service deployment (serverless) |
+| 🔀 **Load Balancing** | Application Load Balancer (ALB) with intelligent traffic routing |
+| 🌐 **DNS & SSL** | Route 53 + ACM (domain: devopsbyhassan.com) |
+| 🔐 **Security** | GitHub → AWS via OIDC (no static credentials) |
+| 💾 **State Management** | Terraform backend with S3 + DynamoDB locking | 
 
-## Architecture
-
-![alt text](images/arch.png)
 
 
-## repository structure
-```text
-├── ECS PROJECT/                      
-│   └── (React UI + Dockerfile)
+
+---
+
+## 🏗️ Architecture
+
+<div align="center">
+
+![Architecture Diagram](images/arch.png)
+
+</div>
+
+
+
+
+
+---
+
+## 📂 Repository Structure
+
+```
+ECS-Projects/
 │
-├── terraform/                
+├── 📁 Application/                          # React UI + Docker 
+│   
+   
+│
+├── 📁 Terraform/                           
 │   ├── main.tf
 │   ├── provider.tf
 │   ├── variables.tf
 │   ├── outputs.tf
 │   ├── terraform.tfvars
-│   └── modules/
+│   └── 📁 modules/
 │       ├── vpc/
 │       ├── alb/
 │       ├── ecs/
@@ -42,131 +71,186 @@ What this project includes
 │       ├── sg/
 │       └── s3/
 │
-└── .github/
-    └── workflows/
-        ├── build.yaml
-        ├── plan.yaml
-        ├── apply.yaml
-        └── destroy.yaml
-
+├── 📁 .github/workflows/                  
+│   ├── build.yaml
+│   ├── plan.yaml
+│   ├── apply.yaml
+│   └── destroy.yaml
+│
+└── README.md                               
 ```
 
- ## CI/CD Workflows
+---
 
-1) Build → Push (ECR)
+## ⚙️ CI/CD Workflows
 
-- Trigger: push to deployment 
+### 1️⃣ Build & Push to ECR
+**Trigger:** Push to `deployment` branch
+- Builds Docker image from `Application/`
+- Pushes image to Amazon ECR
 
-- Builds Docker image from Application/
+![Build Workflow](images/build.png)
 
-- Pushes image to ECR
+---
 
-![alt text](images/build.png)
+### 2️⃣ Terraform Plan
+**Trigger:** Push to `deployment` (Terraform changes)
+- Restores `terraform.tfvars` from GitHub Secrets
+- Executes `terraform init`
+- Executes `terraform validate`
+- Executes `terraform plan`
 
-2) Terraform Plan
+![Plan Workflow](images/plan.png)
 
-Trigger: push to deployment (Terraform changes) 
+---
 
-Restores terraform.tfvars from GitHub Secret 
+### 3️⃣ Terraform Apply
+**Trigger:** Automatically after Plan succeeds
+- Generates `terraform plan -out=tfplan`
+- Applies changes with `terraform apply tfplan`
 
-Runs:
+![Apply Workflow](images/Apply.png)
 
-- terraform init
+---
 
-- terraform validate
+### 4️⃣ Terraform Destroy
+**Trigger:** Manual only (safety feature)
+- Requires confirmation input
+- Executes `terraform destroy`
 
-- terraform plan
+![Destroy Workflow](images/destroy.png)
 
-![alt text](images/plan.png)
+---
 
+## 🔧 Configuration
 
-3) Terraform Apply
+### GitHub Secrets & Variables
 
-Trigger: automatically after Terraform Plan succeeds 
+Navigate to: **Repo → Settings → Secrets and variables → Actions**
 
-Runs:
+#### 🔐 Secrets
+| Secret | Purpose |
+|--------|---------|
+| `AWS_ROLE_ARN` | IAM role assumed via GitHub OIDC |
+| `TFVARS_B64` | Base64-encoded `terraform.tfvars` |
 
-- terraform plan -out=tfplan
+#### 📋 Variables
+| Variable | Example |
+|----------|---------|
+| `AWS_REGION` | `eu-west-2` |
+| `ECR_REPOSITORY` | `ecs-project-app` |
 
-- terraform apply tfplan
+### 📦 Managing terraform.tfvars (Safe Method)
 
-![alt text](images/Apply.png)
+> ⚠️ **Never commit `terraform.tfvars`** — Store it as base64 in GitHub Secrets
 
-4) Terraform Destroy
+From repository root:
 
+```bash
+# Encode terraform.tfvars to base64
+base64 -w 0 Terraform/terraform.tfvars > tfvars.b64
 
-Trigger: manual only (recommended)
-
-Requires confirmation input (safety)
-
-Runs:
-
-- terraform destroy
-
-![alt text](images/destroy.png)
-
-## GitHub Configuration
-
-Go to: Repo → Settings → Secrets and variables → Actions
-
-Secrets
-
-AWS_ROLE_ARN — IAM role assumed via GitHub OIDC
-
-TFVARS_B64 — base64-encoded terraform.tfvars
-
-Variables
-
-AWS_REGION — e.g. eu-west-2
-
-ECR_REPOSITORY — your ECR repo name (e.g. ecs-project-app)
-
-## Managing terraform.tfvars (Safe Method)
-
-- Do not commit terraform.tfvars. Store it as base64 in GitHub Secrets.
-
-From repo root
-
-- base64 -w 0 Terraform/terraform.tfvars > tfvars.b64
+# Display the encoded content
 cat tfvars.b64
-
-- Copy the output into GitHub Secret: TFVARS_B64.
-
-- Your workflows restore it at runtime.
-
-
-## Local Terraform Commands 
-```text
-cd Terraform
-terraform fmt -recursive
-terraform init
-terraform validate
-terraform plan
-terraform apply -auto-approve
 ```
-### To run Locally 
-```text
-To run the app locally 
+
+Copy the base64 output into GitHub Secret: `TFVARS_B64`
+
+Workflows automatically restore it at runtime.
+
+
+---
+
+## 🚀 Getting Started
+
+### Local Development
+
+#### Clone & Setup
+```bash
 git clone https://github.com/hassansharif15/ECS-Projects
-cd ECS PROJECTS
-cd application
+cd ECS-Projects/Application
 npm install
-docker build -t threat-comp-app
+```
+
+#### Build & Run Docker Image
+```bash
+docker build -t threat-comp-app .
 docker run -p 8080:8080 threat-comp-app
 ```
 
+Access the app at: `http://localhost:8080`
 
- ### Useful AWS CLI Checks
-- aws ecs list-clusters --region eu-west-2
-- aws ecs list-services --cluster <CLUSTER_NAME_OR_ARN> --region eu-west-2
+### Terraform Commands (Local)
 
-- aws elbv2 describe-load-balancers --region eu-west-2
-- aws elbv2 describe-target-groups --region eu-west-2
+```bash
+cd Terraform
 
-- aws route53 list-hosted-zones
-- aws route53 list-resource-record-sets --hosted-zone-id <HOSTED_ZONE_ID>
+# Format code
+terraform fmt -recursive
 
-![alt text](images/app.png)
+# Initialize backend
+terraform init
+
+# Validate configuration
+terraform validate
+
+# Preview changes
+terraform plan
+
+# Apply changes
+terraform apply -auto-approve
+```
+
+---
+
+## 📊 AWS CLI Commands
+
+### ECS
+```bash
+# List ECS clusters
+aws ecs list-clusters --region eu-west-2
+
+# List services in cluster
+aws ecs list-services --cluster <CLUSTER_NAME_OR_ARN> --region eu-west-2
+```
+
+### Load Balancer
+```bash
+# Describe load balancers
+aws elbv2 describe-load-balancers --region eu-west-2
+
+# Describe target groups
+aws elbv2 describe-target-groups --region eu-west-2
+```
+
+### Route 53 (DNS)
+```bash
+# List hosted zones
+aws route53 list-hosted-zones
+
+# List DNS records
+aws route53 list-resource-record-sets --hosted-zone-id <HOSTED_ZONE_ID>
+```
+
+---
+
+## 🎨 Project Showcase
+
+<div align="center">
+
+| Application | Certificate |
+|-------------|-------------|
+| ![Application UI](images/app.png) | ![SSL Certificate](images/CERT.png) |
+
+</div>
+
+---
 
 
-![alt text](images/CERT.png)
+---
+
+<div align="center">
+
+
+
+</div>
