@@ -50,7 +50,7 @@ jobs:
           fi
           echo "$TFVARS_B64" | base64 -d > terraform.tfvars
           sed -i 's/\r$//' terraform.tfvars
-          test -f terraform.tfvars && echo "tfvars restored ✅"
+          test -f terraform.tfvars && echo "tfvars restored "
 
       - name: Terraform init
         run: terraform init -input=false
