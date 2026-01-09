@@ -12,27 +12,27 @@
 
 ---
 
-## 📝 Overview
+##  Overview
 
 Deploys a containerised React application to **AWS ECS Fargate** with infrastructure-as-code (Terraform) and automated CI/CD pipelines (GitHub Actions). Docker images are built and pushed to Amazon ECR, with full infrastructure management through automated workflows.
 
-### ✨ Key Features
+###  Key Features
 
 | Feature | Details |
 |---------|---------|
-| 🐳 **Container Registry** | Docker build & push to Amazon ECR |
-| ⚙️ **Compute** | ECS Fargate service deployment (serverless) |
-| 🔀 **Load Balancing** | Application Load Balancer (ALB) with intelligent traffic routing |
-| 🌐 **DNS & SSL** | Route 53 + ACM (domain: devopsbyhassan.com) |
-| 🔐 **Security** | GitHub → AWS via OIDC (no static credentials) |
-| 💾 **State Management** | Terraform backend with S3 + DynamoDB locking | 
+|  **Container Registry** | Docker build & push to Amazon ECR |
+|  **Compute** | ECS Fargate service deployment (serverless) |
+|  **Load Balancing** | Application Load Balancer (ALB) with intelligent traffic routing |
+|  **DNS & SSL** | Route 53 + ACM (domain: devopsbyhassan.com) |
+|  **Security** | GitHub → AWS via OIDC (no static credentials) |
+|  **State Management** | Terraform backend with S3 + DynamoDB locking | 
 
 
 
 
 ---
 
-## 🏗️ Architecture
+##  Architecture
 
 <div align="center">
 
@@ -46,22 +46,22 @@ Deploys a containerised React application to **AWS ECS Fargate** with infrastruc
 
 ---
 
-## 📂 Repository Structure
+##  Repository Structure
 
 ```
 ECS-Projects/
 │
-├── 📁 Application/                          # React UI + Docker 
+├──  Application/                          # React UI + Docker 
 │   
    
 │
-├── 📁 Terraform/                           
+├──  Terraform/                           
 │   ├── main.tf
 │   ├── provider.tf
 │   ├── variables.tf
 │   ├── outputs.tf
 │   ├── terraform.tfvars
-│   └── 📁 modules/
+│   └──  modules/
 │       ├── vpc/
 │       ├── alb/
 │       ├── ecs/
@@ -71,7 +71,7 @@ ECS-Projects/
 │       ├── sg/
 │       └── s3/
 │
-├── 📁 .github/workflows/                  
+├──  .github/workflows/                  
 │   ├── build.yaml
 │   ├── plan.yaml
 │   ├── apply.yaml
@@ -128,21 +128,21 @@ ECS-Projects/
 
 Navigate to: **Repo → Settings → Secrets and variables → Actions**
 
-#### 🔐 Secrets
+####  Secrets
 | Secret | Purpose |
 |--------|---------|
 | `AWS_ROLE_ARN` | IAM role assumed via GitHub OIDC |
 | `TFVARS_B64` | Base64-encoded `terraform.tfvars` |
 
-#### 📋 Variables
+####  Variables
 | Variable | Example |
 |----------|---------|
 | `AWS_REGION` | `eu-west-2` |
 | `ECR_REPOSITORY` | `ecs-project-app` |
 
-### 📦 Managing terraform.tfvars (Safe Method)
+###  Managing terraform.tfvars (Safe Method)
 
-> ⚠️ **Never commit `terraform.tfvars`** — Store it as base64 in GitHub Secrets
+>  **Never commit `terraform.tfvars`** — Store it as base64 in GitHub Secrets
 
 From repository root:
 
