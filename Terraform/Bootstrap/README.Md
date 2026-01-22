@@ -12,25 +12,25 @@
 
 ---
 
-## 📋 Overview
+## Overview
 
 Provisions the foundational Terraform backend resources required for managing infrastructure state and preventing concurrent modifications. This must be run **once per AWS account/region** before deploying main infrastructure.
 
-### ✨ What Gets Created
+### What Gets Created
 
 | Resource | Purpose | Features |
 |----------|---------|----------|
-| 📦 **S3 State Bucket** | Terraform remote state storage | Versioning, encryption, public access blocked |
-| 📝 **S3 Log Bucket** | Access logs archive | Audit trail for compliance |
-| 🔒 **DynamoDB Lock Table** | State locking mechanism | Prevents concurrent modifications |
+|  **S3 State Bucket** | Terraform remote state storage | Versioning, encryption, public access blocked |
+|  **S3 Log Bucket** | Access logs archive | Audit trail for compliance |
+|  **DynamoDB Lock Table** | State locking mechanism | Prevents concurrent modifications |
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 Terraform/
-├── 📁 Bootstrap/
+├──  Bootstrap/
 │   ├── main.tf              # Resource definitions
 │   ├── variables.tf         # Input variables
 │   ├── outputs.tf           # Exported values
@@ -41,19 +41,19 @@ Terraform/
 
 ---
 
-## 💡 Why This Matters
+## Why This Matters
 
 <table>
 <tr>
 <td>
 
-**🌐 Persistent State**
+**Persistent State**
 State safely stored in S3 outside your local machine
 
 </td>
 <td>
 
-**👥 Team Collaboration**
+**Team Collaboration**
 Multiple team members/pipelines can use the same state
 
 </td>
@@ -61,13 +61,13 @@ Multiple team members/pipelines can use the same state
 <tr>
 <td>
 
-**🔒 Concurrent Safety**
+**Concurrent Safety**
 DynamoDB locking prevents state corruption from overlapping runs
 
 </td>
 <td>
 
-**📊 Audit Trail**
+**Audit Trail**
 Versioning and logging for compliance and troubleshooting
 
 </td>
@@ -76,7 +76,7 @@ Versioning and logging for compliance and troubleshooting
 
 ---
 
-## 🚀 Quick Start
+##  Quick Start
 
 ### Step 1: Navigate to Bootstrap
 
@@ -96,7 +96,7 @@ terraform init
 terraform apply -auto-approve
 ```
 
-✅ **Backend resources are now ready!**
+ **Backend resources are now ready!**
 
 ---
 
@@ -127,9 +127,9 @@ terraform init -reconfigure
 
 ---
 
-## 📦 Resource Details
+##  Resource Details
 
-### 1️⃣ DynamoDB Lock Table
+###  DynamoDB Lock Table
 
 Used for distributed state locking across team/pipeline executions.
 
@@ -139,29 +139,29 @@ Partition Key: LockID (String)
 Purpose:       Ensures only one operation modifies state at a time
 ```
 
-### 2️⃣ S3 Log Bucket
+###  S3 Log Bucket
 
 Stores access logs from the state bucket for compliance auditing.
 
 **Configuration:**
-- ✅ Server-side encryption
-- ✅ Lifecycle policies for old logs
-- ✅ Versioning (optional)
+-  Server-side encryption
+-  Lifecycle policies for old logs
+-  Versioning (optional)
 
-### 3️⃣ S3 State Bucket
+### 3 S3 State Bucket
 
 Primary Terraform state storage with security hardening.
 
 **Configuration:**
-- ✅ Versioning enabled
-- ✅ AES-256 encryption enabled
-- ✅ Public access blocked
-- ✅ Access logging enabled
-- ✅ MFA delete (recommended)
+-  Versioning enabled
+-  AES-256 encryption enabled
+-  Public access blocked
+-  Access logging enabled
+-  MFA delete (recommended)
 
 ---
 
-## 📝 Module Variables
+## Module Variables
 
 Configure these in `terraform.tfvars`:
 
@@ -175,7 +175,7 @@ Configure these in `terraform.tfvars`:
 
 ---
 
-## 🌍 Multi-Environment Setup
+## Multi-Environment Setup
 
 ### Strategy 1: Separate Buckets per Environment
 ```
@@ -195,7 +195,7 @@ s3://terraform-state/dev/terraform.tfstate
 
 ---
 
-## ⚠️ Critical Best Practices
+## Critical Best Practices
 
 ### Do NOT Commit These Files
 ```
@@ -206,16 +206,16 @@ s3://terraform-state/dev/terraform.tfstate
 ```
 
 ### Preserve Bootstrap Resources
-> ⚠️ **Never destroy** Bootstrap resources unless intentionally tearing down the entire environment. Destruction removes your state storage and breaks all Terraform operations.
+> **Never destroy** Bootstrap resources unless intentionally tearing down the entire environment. Destruction removes your state storage and breaks all Terraform operations.
 
 ### Access Control
-- 🔐 Restrict S3 bucket access via IAM policies
-- 🔐 Enable MFA delete on state bucket
-- 🔐 Use bucket versioning for recovery
+- Restrict S3 bucket access via IAM policies
+- Enable MFA delete on state bucket
+- Use bucket versioning for recovery
 
 ---
 
-## 🛠️ Common Commands
+## Common Commands
 
 ```bash
 cd Terraform
@@ -241,7 +241,7 @@ terraform destroy
 
 ---
 
-## 📊 Useful AWS CLI Commands
+## Useful AWS CLI Commands
 
 ### Check S3 Buckets
 ```bash
@@ -263,7 +263,7 @@ aws s3 ls s3://<bucket-name>/state/ --recursive --region eu-west-2
 
 <div align="center">
 
-✨ **Bootstrap is ready to support your infrastructure** ✨
+ **Bootstrap is ready to support your infrastructure** 
 
 </div>
 
