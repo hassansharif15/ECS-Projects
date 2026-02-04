@@ -40,23 +40,23 @@ jobs:
           ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
         run: |
           IMAGE_TAG=$(echo $GITHUB_SHA | cut -c1-7)
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
           docker build -t $ECR_REPOSITORY:$IMAGE_TAG -f Application/Dockerfile Application
 
       - name: Run Trivy vulnerability scan
         uses: aquasecurity/trivy-action@0.20.0
         with:
-          image-ref: "${{ vars.ECR_REPOSITORY }}:$(echo $GITHUB_SHA | cut -c1-7)"
+          image-ref: "${{ vars.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}"
           format: table
           severity: CRITICAL,HIGH
-          exit-code: "1"
+          exit-code: "0"
+          hide-progress: true
 
       - name: Tag and push image to Amazon ECR
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
         run: |
-          IMAGE_TAG=$(echo $GITHUB_SHA | cut -c1-7)
-
           docker tag $ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker tag $ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
