@@ -1,9 +1,13 @@
-name: build and push docker image
+name: Build and Push Docker Image
 
 on:
   push:
     branches:
       - deployment
+    paths:
+      - "Application/**"
+      - ".github/workflows/build-and-push.yml"
+
   workflow_dispatch:
 
 permissions:
@@ -15,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Configure AWS credentials (OIDC)
@@ -31,16 +35,30 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build, tag, and push image to Amazon ECR
+      - name: Build Docker image
+        env:
+          ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+        run: |
+          IMAGE_TAG=$(echo $GITHUB_SHA | cut -c1-7)
+          docker build -t $ECR_REPOSITORY:$IMAGE_TAG -f Application/Dockerfile Application
+
+      - name: Run Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@0.20.0
+        with:
+          image-ref: "${{ vars.ECR_REPOSITORY }}:$(echo $GITHUB_SHA | cut -c1-7)"
+          format: table
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+
+      - name: Tag and push image to Amazon ECR
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
         run: |
-          SHORT_SHA=${GITHUB_SHA::7}
+          IMAGE_TAG=$(echo $GITHUB_SHA | cut -c1-7)
 
-          docker build -t $ECR_REPOSITORY:$SHORT_SHA -f Application/Dockerfile Application
-          docker tag  $ECR_REPOSITORY:$SHORT_SHA $ECR_REGISTRY/$ECR_REPOSITORY:$SHORT_SHA
-          docker tag  $ECR_REPOSITORY:$SHORT_SHA $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker tag $ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker tag $ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$SHORT_SHA
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest

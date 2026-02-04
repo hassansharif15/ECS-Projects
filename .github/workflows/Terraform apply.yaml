@@ -2,8 +2,10 @@ name: Terraform Apply
 
 on:
   workflow_run:
-    workflows: ["Terraform Plan"]   
-    types: [completed]
+    workflows: ["Terraform Plan"]
+    types:
+      - completed
+
   workflow_dispatch:
 
 permissions:
@@ -16,8 +18,11 @@ concurrency:
 
 jobs:
   apply:
-    
-    if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'deployment') }}
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'deployment')
+
     runs-on: ubuntu-latest
 
     defaults:
@@ -28,10 +33,26 @@ jobs:
       TFVARS_B64: ${{ secrets.TFVARS_B64 }}
 
     steps:
-      - name: Checkout (same commit that Plan ran on)
+      - name: Checkout same commit Plan ran on
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Detect Terraform changes
+        id: changes
+        uses: dorny/paths-filter@v2
+        with:
+          filters: |
+            terraform:
+              - 'Terraform/**'
+              - '**/*.tf'
+              - '**/*.tfvars'
+
+      - name: Stop if no Terraform changes
+        if: steps.changes.outputs.terraform != 'true'
+        run: |
+          echo "No Terraform changes detected. Skipping apply."
+          exit 0
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
@@ -42,15 +63,10 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
-      - name: Restore terraform.tfvars from secret
+      - name: Restore terraform.tfvars
         run: |
-          if [ -z "$TFVARS_B64" ]; then
-            echo "Missing secret TFVARS_B64"
-            exit 1
-          fi
           echo "$TFVARS_B64" | base64 -d > terraform.tfvars
           sed -i 's/\r$//' terraform.tfvars
-          test -f terraform.tfvars && echo "tfvars restored "
 
       - name: Terraform init
         run: terraform init -input=false
@@ -58,7 +74,7 @@ jobs:
       - name: Terraform validate
         run: terraform validate
 
-      - name: Terraform plan (for apply)
+      - name: Terraform plan
         run: terraform plan -input=false -no-color -out=tfplan
 
       - name: Terraform apply

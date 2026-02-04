@@ -2,10 +2,12 @@ name: Terraform Plan
 
 on:
   push:
-    branches: ["deployment"]
+    branches:
+      - deployment
     paths:
       - "Terraform/**"
-      - ".github/workflows/plan.yaml"
+      - ".github/workflows/terraform-plan.yml"
+
   workflow_dispatch:
 
 permissions:
@@ -15,17 +17,35 @@ permissions:
 jobs:
   plan:
     runs-on: ubuntu-latest
+
     defaults:
       run:
         working-directory: Terraform
 
+    env:
+      TFVARS_B64: ${{ secrets.TFVARS_B64 }}
+
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
+      
+      # Security Scan (DevSecOps)
+      
+      - name: Run tfsec (Terraform security scan)
+        uses: aquasecurity/tfsec-action@v1.0.3
+        with:
+          working_directory: Terraform
+          soft_fail: false
+
+      
+      # Setup Terraform
+      
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
+      
+      # Terraform formatting (tracked files only)
       
       - name: Terraform fmt (check tracked files only)
         run: |
@@ -34,6 +54,9 @@ jobs:
             terraform fmt -check $files
           fi
 
+      
+      # Configure AWS via OIDC
+      
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -43,13 +66,22 @@ jobs:
       - name: Verify AWS identity
         run: aws sts get-caller-identity
 
-      - name: Restore terraform.tfvars from secret
+      
+      # Restore tfvars from GitHub Secret
+      
+      - name: Restore terraform.tfvars
         run: |
-          echo "${{ secrets.TFVARS_B64 }}" | base64 -d > terraform.tfvars
-          # normalize CRLF -> LF just in case
+          if [ -z "$TFVARS_B64" ]; then
+            echo "Missing TFVARS_B64 secret"
+            exit 1
+          fi
+          echo "$TFVARS_B64" | base64 -d > terraform.tfvars
           sed -i 's/\r$//' terraform.tfvars
           test -f terraform.tfvars && echo "tfvars restored ✅"
 
+      
+      # Terraform Init / Validate / Plan
+      
       - name: Terraform init
         run: terraform init -input=false
 
