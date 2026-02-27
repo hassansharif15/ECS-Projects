@@ -36,7 +36,7 @@ Deploys a containerised React application to **AWS ECS Fargate** with infrastruc
 
 <div align="center">
 
-![Architecture Diagram](images/arch.png)
+![alt text](images/new.png)
 
 </div>
 
